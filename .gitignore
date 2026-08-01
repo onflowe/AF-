@@ -1,0 +1,15 @@
+# Python缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# 配置隐私（如果config.yaml有数据库密码）
+config/
+.env
+
+# 临时文件、文档缓存
+chroma_db/
+data/
+data_re/

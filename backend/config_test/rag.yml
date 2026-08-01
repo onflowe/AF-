@@ -1,0 +1,23 @@
+
+#文档文件夹
+data_path : data
+#允许格式
+allowed_type : [".txt",".json"]
+#MD5文件路径
+md5_hex_store : md5.txt
+#文档元数据
+k_metadata_type : "knowledge"
+m_metadata_type : "chat_history"
+
+#chroma
+collection_name : store_base #表名
+persist_directory : chroma_db/store #文件名
+chunk_size : 1000 #分块大小
+chunk_overlap : 200 #上下分块时的重复字段
+k: 3
+separators :  ["\n\n" ,"." ,"," ,"。" ,"，"  , "!", "?"]  #分块优先级
+
+#memary
+window_k : 4
+history_dir: data/history
+data_re : data_re

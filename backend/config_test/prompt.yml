@@ -1,0 +1,3 @@
+system_prompt_path : prompt/system_prompt.txt
+rag_prompt_path : prompt/rag_prompt.txt
+memorySum_prompt_path : prompt/memorySum_prompt.txt
