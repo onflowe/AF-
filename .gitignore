@@ -13,3 +13,5 @@ config/
 chroma_db/
 data/
 data_re/
+md5.txt
+.log
