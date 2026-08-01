@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AF</title>
+    <link rel="stylesheet" href="static/CSS/card.css">
+</head>
+<body>
+    <div>
+        <!-- 头部标题 -->
+        <div class="chat-header">
+            <h1>AF</h1>
+        </div>
+         <!-- 消息显示区域 -->
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai">你好！我是你的AI聊天伙伴，有什么可以帮你的吗？</div>
+        </div>
+         <!-- 输入区域 -->
+        <div class="chat-input-area">
+            <input type="text" id="userInput" placeholder="想聊些什么...">
+            <button id="submitBtn" onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+    <script src="static/JS/send_msg.js"></script>
+
+</body>
+</html>
