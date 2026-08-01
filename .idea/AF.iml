@@ -8,6 +8,7 @@
       <excludeFolder url="file://$MODULE_DIR$/backend/config" />
       <excludeFolder url="file://$MODULE_DIR$/backend/data" />
       <excludeFolder url="file://$MODULE_DIR$/backend/data_re" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/logs" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.12 (AF)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
