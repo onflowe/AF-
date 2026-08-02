@@ -28,6 +28,7 @@ class ShotMemory:
         self.merge_threshold = 3  # 积累多少条摘要后触发合并
         self.summary_llm = chat_model  # 可以后续注入一个LLM实例用于生成摘要
         self.prompt_txt =load_memory_sum_prompt()
+        self.prompt_dir =json.loads(self.prompt_txt)
 
 
     #获取memary对象
@@ -64,32 +65,21 @@ class ShotMemory:
         # 判断：是否超过了滑动窗口？
         need_trim = total_count > keep_count
 
-        if need_sync and need_trim:
-            # 场景：同时满足同步和滑动
-            # 1. 先同步：将完整历史存入向量库
-            self.vector_store.load_document()
-
-            # 2. 再覆盖：只保留窗口内的消息
+        if need_trim:
             removed_messages = all_messages[:-keep_count]
             if removed_messages:
-                # 生成摘要（保留被移除消息的要点）
+                # 溢出对话生成摘要
                 new_summary = self._generate_summary(removed_messages)
                 if new_summary:
-                    self._add_summary_to_layer(session_id, 1, new_summary)
+                    self._add_summary_to_layer(session_id, 1,new_summary)
 
-            # 3. 最后覆盖文件
-            self._overwrite_messages(session_id, all_messages[-keep_count:])
-
-        elif need_trim and not need_sync:
-            # 场景：需要滑动但未达到同步条件
-            pass  # 什么都不做，等待下一次对话
-        else:
-            # 场景：未达到任何阈值
-            pass  # 正常积累
-
-
-
-
+            # =========条件2：达到同步阈值 → 全量加载原始对话存入向量库【独立执行】=========
+        if need_sync:
+            # load_document：读取当前会话完整对话，写入向量库长期记忆
+            self.vector_store.load_document()
+            # 覆盖本地文件，仅保留窗口内最新消息
+            remain_messages = all_messages[-keep_count:]
+            self._overwrite_messages(session_id, remain_messages)
 
     #获得历史数据
     def get_history_str(self,session_id: str):
@@ -141,7 +131,7 @@ class ShotMemory:
             return ""
 
         # 根据目的选择提示词
-        prompts = self.prompt_txt
+        prompts = self.prompt_dir
 
         prompt_config = prompts.get(purpose)
         if not prompt_config:

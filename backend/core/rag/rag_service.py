@@ -33,10 +33,10 @@ class RagService:
         # 检索当前用户长期对话记忆 type=chat_memory
 
     def retrieve_chat_memory(self, query: str, k=3) -> List[Document]:
-        retriever = self.vector_store.get_retriever(rag_config["m_metadata_type "])
+        retriever = self.vector_store.get_retriever(rag_config["m_metadata_type"])
         docs = retriever.invoke(query)
         # 对话记忆按时间先后排序，新对话靠前
-        docs.sort(key=lambda x: x.metadata["round_index"], reverse=True)
+        docs.sort(key=lambda x: x.metadata.get("msg_time", 0), reverse=True)
         return docs
 
     #将用户提问和资料注入chain
