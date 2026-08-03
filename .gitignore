@@ -12,10 +12,11 @@ config/
 # 临时文件、文档缓存
 chroma_db/
 data/
-data_re/
+history_re/
 md5.txt
 logs/
 .log
+history
 
 # IDE配置
 .idea/
