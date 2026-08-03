@@ -30,13 +30,14 @@ class VectorstoreService:
 
 
     #输出---调用检索器
-    def get_retriever(self,type:str):
-        return self.vectorstore.as_retriever(seach_kwargs={"k":rag_config["k"],"type":type})
+    def get_retriever(self,filter_dict:dict=None):
+        # 每次查询独立生成过滤条件
+        return self.vectorstore.as_retriever(seach_kwargs={"k":rag_config["k"],"filter":filter_dict})
 
     #输入
     #文档加载
 
-    def load_document(self ):
+    def load_document(self ,data_path:str):
         #md5去重
         md5_path = get_abs_path(rag_config["md5_hex_store"])
         def check_md5_hex(md5_for_check):
@@ -55,7 +56,7 @@ class VectorstoreService:
                 f.write(md5_for_check + "\n")
 
         """===============================  文件夹目录传入位置  ============================================================================================================="""
-        allowed_path =load_file_path(get_abs_path(rag_config["data_path"]),rag_config["allowed_type"])
+        allowed_path =load_file_path(data_path,rag_config["allowed_type"])
 
         for path in allowed_path:
             md5_hex = get_md5_has(path)
@@ -77,6 +78,10 @@ class VectorstoreService:
             except Exception as e:
                 logger.error(f"File found false: {path},{str(e)}")
 
+    #知识库加载
+    def load_know(self):
+        self.load_document(get_abs_path(rag_config["data_path"]))
+
             #语义去重
 
     #对话加载
@@ -84,7 +89,7 @@ class VectorstoreService:
 
 if __name__=="__main__":
     vec = VectorstoreService()
-    vec.load_document()
+    vec.load_know()
 
 
 

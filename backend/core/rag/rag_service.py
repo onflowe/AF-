@@ -26,26 +26,38 @@ class RagService:
 
     #返回检索得到的文档
     def retrieve_knowledge(self, query: str) -> List[Document]:
-        filter_cond = {"type": "knowledge"}
-        retriever = self.vector_store.get_retriever(rag_config["k_metadata_type "])
-        return retriever.invoke(query)
+        filter_rule= {"type": rag_config["k_metadata_type"]}
+        retriever= self.vector_store.get_retriever(filter_dict=filter_rule)
+        docs = retriever.invoke(query)
+        return docs
 
         # 检索当前用户长期对话记忆 type=chat_memory
 
-    def retrieve_chat_memory(self, query: str, k=3) -> List[Document]:
-        retriever = self.vector_store.get_retriever(rag_config["m_metadata_type"])
+    def retrieve_chat_memory(self, query: str,user_id:str,session_id:str) -> List[Document]:
+        filter_rule= {
+            "$and": [
+                {"type": "memory"},
+                {"user_id": user_id},
+                {"session_id": session_id}
+            ]
+        }
+        retriever = self.vector_store.get_retriever(filter_dict=filter_rule)
         docs = retriever.invoke(query)
-        # 对话记忆按时间先后排序，新对话靠前
-        docs.sort(key=lambda x: x.metadata.get("msg_time", 0), reverse=True)
+        # 按时间倒序排序（沿用你之前的时序优化）
+        docs.sort(
+            key=lambda d: d.metadata.get("msg_time", ""),
+            reverse=True
+        )
         return docs
 
+
     #将用户提问和资料注入chain
-    def rag_summary(self,quest:str,use_knowledge:bool, use_memory: bool)  :
+    def rag_summary(self,user_id:str,session_id:str,quest:str,use_knowledge:bool=True, use_memory: bool=True)  :
         docs = []
         if use_knowledge:
             docs.extend(self.retrieve_knowledge(quest))
         if use_memory:
-            docs.extend(self.retrieve_chat_memory(quest))
+            docs.extend(self.retrieve_chat_memory(quest,user_id,session_id))
         context = ""
         count = 0
         for doc in docs:
@@ -59,6 +71,5 @@ class RagService:
         )
     """ 考虑历史对话注入时机 """
 
-def create_rag_service():
-    rag_service = RagService()
-    return rag_service
+
+rag_service = RagService()

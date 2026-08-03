@@ -38,7 +38,8 @@
                     },
                     body: JSON.stringify({
                         Human_content: message,
-                        session_id: "s001"
+                        session_id: "s001",
+                        user_id: "u001"
                         // 如果需要传用户ID、会话ID等，在这里加
                         // user_id: 'user_001',
                         // conversation_id: 'conv_001'

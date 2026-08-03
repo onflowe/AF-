@@ -19,22 +19,23 @@ class ShotMemory:
     def __init__(self):
         self.window_k = rag_config["window_k"]      #滑动窗口大小
         self.history_dir =get_abs_path(rag_config["history_dir"]) #存储路径
-        self.data_re =get_abs_path(rag_config["data_re"])  #总结存储路径
+        self.history_re =get_abs_path(rag_config["history_re"])  #总结存储路径
         self.vector_store = VectorstoreService()
         os.makedirs(self.history_dir, exist_ok=True)
-        os.makedirs(self.data_re, exist_ok=True)
+        os.makedirs(self.history_re, exist_ok=True)
 
         #摘要总结相关
         self.merge_threshold = 3  # 积累多少条摘要后触发合并
         self.summary_llm = chat_model  # 可以后续注入一个LLM实例用于生成摘要
         self.prompt_txt =load_memory_sum_prompt()
-        self.prompt_dir =json.loads(self.prompt_txt)
+        self.prompt_dict =json.loads(self.prompt_txt)
 
 
     #获取memary对象
-    def get_memory(self,session_id: str):
-        #定义会话文件存储路径
-        file_path = os.path.join(self.history_dir, f"{session_id}.json")
+    def get_memory(self,session_id: str,user_id:str):
+        file_dir = os.path.join(self.history_dir,f"{user_id}")
+        os.makedirs(file_dir, exist_ok=True)
+        file_path = os.path.join(file_dir,f"{session_id}.json")
 
         #生成存储实例
         return FileChatMessageHistory(file_path)
@@ -43,14 +44,20 @@ class ShotMemory:
 
 
     #写入数据
-    def add_message(self,session_id: str, user_input:str ,ai_output):
+    def add_message(self,user_id:str,session_id: str, user_input:str ,ai_output):
         #创建memary实例
-        memory = self.get_memory(session_id)
+        memory = self.get_memory(session_id,user_id)
+        # 存入对话并包装成JSON
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        #存入对话并包装成JSON
+        additional_kwargs ={
+            "timestamp": now,
+            "user_id" : user_id,
+            "session_id" : session_id
+        }
+
         memory.add_messages([
-            HumanMessage(content=user_input, type="human",additional_kwargs={"timestamp": now}),
-            AIMessage(content=ai_output, type="ai",additional_kwargs={"timestamp": now})
+            HumanMessage(content=user_input, type="human",additional_kwargs= additional_kwargs),
+            AIMessage(content=ai_output, type="ai",additional_kwargs= additional_kwargs)
         ])
 
         # 2. 检查是否需要触发摘要生成
@@ -71,19 +78,20 @@ class ShotMemory:
                 # 溢出对话生成摘要
                 new_summary = self._generate_summary(removed_messages)
                 if new_summary:
-                    self._add_summary_to_layer(session_id, 1,new_summary)
+                    self._add_summary_to_layer(user_id,session_id, 1,new_summary)
 
             # =========条件2：达到同步阈值 → 全量加载原始对话存入向量库【独立执行】=========
         if need_sync:
             # load_document：读取当前会话完整对话，写入向量库长期记忆
-            self.vector_store.load_document()
+            load_path = os.path.join(self.history_dir,f"{user_id}")
+            self.vector_store.load_document(load_path)
             # 覆盖本地文件，仅保留窗口内最新消息
             remain_messages = all_messages[-keep_count:]
-            self._overwrite_messages(session_id, remain_messages)
+            self._overwrite_messages(session_id,user_id, remain_messages)
 
     #获得历史数据
-    def get_history_str(self,session_id: str):
-        memory = self.get_memory(session_id)
+    def get_history_str(self,user_id,session_id: str):
+        memory = self.get_memory(session_id,user_id)
         #拿到所有的message列表
         all_messages = memory.messages
         #窗口*2 =message个数
@@ -91,9 +99,9 @@ class ShotMemory:
         window_messages = all_messages[-keep_msg_count:] if len(all_messages) > keep_msg_count else all_messages
 
         # 2. 加载分层摘要
-        layer1 = self._load_summaries(session_id, 1)  # 最近3条详细摘要
-        layer2 = self._load_summaries(session_id, 2)  # 最近3条中等摘要
-        layer3 = self._load_layer3_summary(session_id)  # 1条最浓缩摘要
+        layer1 = self._load_summaries(user_id,session_id, 1)  # 最近3条详细摘要
+        layer2 = self._load_summaries(user_id,session_id, 2)  # 最近3条中等摘要
+        layer3 = self._load_layer3_summary(user_id,session_id)  # 1条最浓缩摘要
 
         # 3. 组装：按层级拼接，让最近的、最详细的排在前面
         summary_parts = []
@@ -111,8 +119,8 @@ class ShotMemory:
         }
 
     #清除buffer缓存，覆盖JSON为空
-    def clear_session(self, session_id: str):
-        memory = self.get_memory(session_id)
+    def clear_session(self, session_id: str,user_id: str):
+        memory = self.get_memory(session_id,user_id)
         memory.clear()
 
     # 总结摘要服务=========================================================================================================
@@ -131,7 +139,7 @@ class ShotMemory:
             return ""
 
         # 根据目的选择提示词
-        prompts = self.prompt_dir
+        prompts = self.prompt_dict
 
         prompt_config = prompts.get(purpose)
         if not prompt_config:
@@ -174,12 +182,12 @@ class ShotMemory:
         return self._compress_text(combined, purpose="merge")
 
 
-    def _add_summary_to_layer(self, session_id: str, layer: int, summary: str):
+    def _add_summary_to_layer(self,user_id:str, session_id: str, layer: int, summary: str):
         """添加摘要到指定层，并检查是否需要触发合并"""
-        layer_file = self._get_layer_file(session_id, layer)
+        layer_file = self._get_layer_file(user_id,session_id, layer)
 
         # 读取现有摘要列表
-        summaries = self._load_summaries(session_id, layer)
+        summaries = self._load_summaries(user_id,session_id, layer)
         summaries.append(summary)
 
         # 如果达到合并阈值，触发合并到上一层
@@ -189,19 +197,20 @@ class ShotMemory:
             # 存入上一层
             if layer + 1 == 3:
                 # 第三层特殊处理：直接保存，不进行列表操作
-                self._save_layer3_summary(session_id, merged)
+                self._save_layer3_summary(user_id,session_id, merged)
             else:
                 # 非第三层，继续使用现有逻辑
-                self._add_summary_to_layer(session_id, layer + 1, merged)
+                self._add_summary_to_layer(user_id,session_id, layer + 1, merged)
                 # 清空当前层
-                self._save_summaries(session_id, layer, [])
+                self._save_summaries(user_id,session_id, layer, [])
         else:
             # 未达到阈值，直接保存
-            self._save_summaries(session_id, layer, summaries)
+            self._save_summaries(user_id,session_id, layer, summaries)
 
-    def _overwrite_messages(self, session_id: str, messages: List[BaseMessage]):
+    def _overwrite_messages(self, session_id: str,user_id:str, messages: List[BaseMessage]):
         """覆盖窗口消息（用于滑动窗口更新）"""
-        file_path = os.path.join(self.history_dir, f"{session_id}.json")
+        file_dir = os.path.join(self.history_dir,user_id)
+        file_path = os.path.join(file_dir, f"{session_id}.json")
         # 直接重写文件
         history = FileChatMessageHistory(file_path)
         history.clear()
@@ -215,18 +224,19 @@ class ShotMemory:
             lines.append(f"{role}：{msg.content}")
         return "\n".join(lines)
 
-    def _get_layer_file(self, session_id: str, layer: int) -> str:
+    def _get_layer_file(self,user_id:str, session_id: str, layer: int) -> str:
         """获取分层摘要文件路径"""
         suffix = "txt" if layer == 3 else "json"
-        return os.path.join(self.data_re, f"{session_id}_layer{layer}.{suffix}")
+        file_dir = os.path.join(self.history_re,user_id)
+        return os.path.join(file_dir, f"{session_id}_layer{layer}.{suffix}")
 
-    def _load_summaries(self, session_id: str, layer: int) -> List[str]:
+    def _load_summaries(self, user_id:str,session_id: str, layer: int) -> List[str]:
         """加载指定层的摘要列表（第1、2层）"""
         if layer == 3:
             # 第3层是单条文本，在另一个方法中处理
             return []
 
-        layer_file = self._get_layer_file(session_id, layer)
+        layer_file = self._get_layer_file(user_id,session_id, layer)
         if os.path.exists(layer_file):
             try:
                 with open(layer_file, 'r', encoding='utf-8') as f:
@@ -236,19 +246,19 @@ class ShotMemory:
                 return []
         return []
 
-    def _save_summaries(self, session_id: str, layer: int, summaries: List[str]):
+    def _save_summaries(self,user_id:str, session_id: str, layer: int, summaries: List[str]):
         """保存指定层的摘要列表（第1、2层）"""
         if layer == 3:
             # 第3层在单独的方法中处理
             return
 
-        layer_file = self._get_layer_file(session_id, layer)
+        layer_file = self._get_layer_file(user_id,session_id, layer)
         with open(layer_file, 'w', encoding='utf-8') as f:
             json.dump(summaries, f, ensure_ascii=False, indent=2)
 
-    def _load_layer3_summary(self, session_id: str) -> Optional[str]:
+    def _load_layer3_summary(self, user_id:str,session_id: str) -> Optional[str]:
         """加载第3层摘要（单条文本）"""
-        layer_file = self._get_layer_file(session_id, 3)
+        layer_file = self._get_layer_file(user_id,session_id, 3)
         if os.path.exists(layer_file):
             try:
                 with open(layer_file, 'r', encoding='utf-8') as f:
@@ -257,15 +267,15 @@ class ShotMemory:
                 return None
         return None
 
-    def _save_layer3_summary(self, session_id: str, summary: str):
+    def _save_layer3_summary(self,user_id:str, session_id: str, summary: str):
         """保存第3层摘要（覆盖）"""
-        layer_file = self._get_layer_file(session_id, 3)
+        layer_file = self._get_layer_file(user_id,session_id, 3)
         with open(layer_file, 'w', encoding='utf-8') as f:
             f.write(summary)
 
-    def _clear_summary_file(self, session_id: str, layer: int):
+    def _clear_summary_file(self,user_id:str, session_id: str, layer: int):
         """清理指定层的摘要文件"""
-        layer_file = self._get_layer_file(session_id, layer)
+        layer_file = self._get_layer_file(user_id,session_id, layer)
         if os.path.exists(layer_file):
             os.remove(layer_file)
 
@@ -276,7 +286,7 @@ memory_service = ShotMemory()  #后续改为懒加载统一服务类示例创建
 
 if __name__ == "__main__":
 
-   memory_service.clear_session(session_id="s001")
+   memory_service.clear_session(user_id="u001",session_id="s001")
 
 
 

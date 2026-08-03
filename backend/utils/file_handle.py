@@ -2,6 +2,8 @@ import os,json,hashlib
 from typing import List
 from langchain_core.documents import Document
 from langchain_community.document_loaders import TextLoader
+from streamlit.runtime.state.common import user_key_from_element_id
+
 from backend.utils.config_handle import rag_config
 from backend.utils.path_tool import get_abs_path
 from backend.utils.log_handle import logger
@@ -33,6 +35,8 @@ def load_json(path:str)->List[Document]:
         ai_msg = msg_list[i + 1]
 
         # 提取内容
+        user_id =  human_msg["data"]["additional_kwargs"].get("user_id")
+        session_id =  human_msg["data"]["additional_kwargs"].get("session_id")
         user_text = human_msg["data"]["content"]
         ai_text = ai_msg["data"]["content"]
         msg_time = human_msg["data"]["additional_kwargs"].get("timestamp", "")
@@ -43,6 +47,8 @@ def load_json(path:str)->List[Document]:
             """.strip()
 
         meta = {
+            "user_id": user_id,
+            "session_id": session_id,
             "type": rag_config["m_metadata_type"],
             "source_file": str(path),
             "msg_time": msg_time,

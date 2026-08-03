@@ -4,6 +4,7 @@ from pydantic import  BaseModel
 class ChatRequest(BaseModel):
     Human_content: str
     session_id: str  #默认为s001
+    user_id: str     #默认u001
 
 #响应体
 class ChatResponse(BaseModel):

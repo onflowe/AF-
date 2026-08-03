@@ -1,14 +1,27 @@
+from langchain_core.tools import  BaseTool
+
+from backend.core.rag.rag_service import rag_service
+
 from langchain.tools import tool
-from backend.core.rag.rag_service import create_rag_service
 
-@tool(description="查询通用知识库，用来查找客观资料、文档信息")
-def search_public_knowledge(query: str):
-    """查询通用知识库，用来查找客观资料、文档信息"""
-    rag_service = create_rag_service()
-    return rag_service.rag_summary(query,use_knowledge=True,use_memory=False)
+def create_tool(user_id:str,session_id:str) -> BaseTool:
+    #通过工厂函数实时创建工具，以此达到uid和sid的传入
+    @tool(description="""
+    
+    检索知识库与对话历史记忆，辅助回答用户问题。
+    参数：
+        query：检索关键词
+        use_knowledge：是否检索公共知识库。True开启，False关闭。
+        use_memory：是否检索本次会话历史对话记忆。True开启，False关闭。
+    """)
+    def rag_search(query: str,use_knowledge: bool = True,use_memory: bool = True) -> str:
 
-@tool(description="查询你和用户之前的历史对话，回忆之前聊过的内容、用户偏好")
-def search_chat_memory(query: str):
-    """查询你和用户之前的历史对话，回忆之前聊过的内容、用户偏好"""
-    rag_service = create_rag_service()
-    return rag_service.rag_summary(query,use_memory=True,use_knowledge=False)
+        # user_id、session_id 外部传入
+        return rag_service.rag_summary(
+            quest=query,
+            user_id=user_id,
+            session_id=session_id,
+            use_knowledge=use_knowledge,
+            use_memory=use_memory
+        )
+    return rag_search

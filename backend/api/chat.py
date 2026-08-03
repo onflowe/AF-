@@ -17,9 +17,11 @@ def get_index():
 @app.post("/api/chat/record")
 def chat(request: ChatRequest)->ChatResponse:
     agent = RectAgentService()
+    uid = request.user_id
+    sid = request.session_id
 
     full_response = ''
-    for chunk in agent.execute_stream(request.session_id, request.Human_content):
+    for chunk in agent.execute_stream(uid,sid, request.Human_content):
         full_response += chunk
 
 
