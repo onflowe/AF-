@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+.vscode/
 
 # 配置隐私（如果config.yaml有数据库密码）
 config/
@@ -27,3 +28,11 @@ history
 # 系统文件
 .DS_Store
 Thumbs.db
+dist
+*.local
+node_modules/
+.claude/
+
+#live2dSDK
+Framework/
+frontend/public/Core/

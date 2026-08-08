@@ -1,27 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>AF</title>
-    <link rel="stylesheet" href="static/CSS/card.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>🌸 AF · 少女聊天室</title>
+  <link rel="stylesheet" href="/style.css">
+  <!-- Live2D Cubism Core: 必须在 type="module" 之前以普通脚本加载 -->
+  <script src="/Core/live2dcubismcore.js"></script>
 </head>
 <body>
-    <div>
-        <!-- 头部标题 -->
-        <div class="chat-header">
-            <h1>AF</h1>
-        </div>
-         <!-- 消息显示区域 -->
-        <div class="chat-messages" id="chatMessages">
-            <div class="message ai">你好！我是你的AI聊天伙伴，有什么可以帮你的吗？</div>
-        </div>
-         <!-- 输入区域 -->
-        <div class="chat-input-area">
-            <input type="text" id="userInput" placeholder="想聊些什么...">
-            <button id="submitBtn" onclick="sendMessage()">发送</button>
-        </div>
-    </div>
-    <script src="static/JS/send_msg.js"></script>
+  <!-- 背景层：Live2D 模型全屏显示 -->
+  <div id="live2d-panel">
+    <div id="live2d-container"></div>
+  </div>
 
+  <!-- 浮层：聊天界面覆盖在模型之上 -->
+  <div id="chat-panel">
+    <div class="chat-header">
+      <h1>🌸 AF</h1>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="message ai">你好！我是你的AI聊天伙伴，有什么可以帮你的吗？</div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" id="userInput" placeholder="想聊些什么...">
+      <button id="submitBtn">发送</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

@@ -1,0 +1,23 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "Remielle_DanV3.moc3",
+		"Textures": [
+			"Remielle_DanV3.1024/texture_00.png"
+		],
+		"Physics": "Remielle_DanV3.physics3.json",
+		"DisplayInfo": "Remielle_DanV3.cdi3.json"
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": []
+		},
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": []
+		}
+	]
+}
