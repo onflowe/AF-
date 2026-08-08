@@ -1,5 +1,4 @@
 from langchain.agents import create_agent
-from langchain_classic.agents import AgentExecutor
 from langchain_core.messages import AIMessage, HumanMessage,SystemMessage
 
 from backend.models.model_factory import chat_model
@@ -10,21 +9,14 @@ from backend.core.agent.tools import create_tool
 
 class RectAgentService:
     def __init__(self):
-        self.agent = create_agent(
-            model=chat_model,
-            system_prompt=load_system_prompt(),
-            tools=[]
+        
+        self.model= chat_model
+        self.system_prompt=load_system_prompt()
+       
 
-        )
+        
 
-    def get_executor(self, tools):
-        # 每次请求传入当前会话专属tools，生成执行器
-        executor = AgentExecutor(
-            agent=self.base_agent,
-            tools=tools,
-            verbose=True
-        )
-        return executor
+    
 
 
     #流式输出
@@ -41,7 +33,14 @@ class RectAgentService:
         }
         tools = create_tool(user_id,session_id)
         #分块传出，查看元块数据，测试用
-        for chunk in self.get_executor(tools).stream(input_dict, stream_mode="messages"): #values :<class 'dict'> 全部信息 chunk1 :{"messages" : [HumanMessage(..),AIMessage(..)]
+        agent = create_agent(
+                    model=self.model,
+                    system_prompt=self.system_prompt,
+                    tools=[tools]
+        
+                )
+
+        for chunk in agent.stream(input_dict, stream_mode="messages"): #values :<class 'dict'> 全部信息 chunk1 :{"messages" : [HumanMessage(..),AIMessage(..)]
                                                                             #messages : <class 'tuple'>   chunk1 : (AIMessage(..),{metadata})
             # isinstance( 判断对象 ，类型 )   判断 对象 是否为该 类型
             if isinstance(chunk,tuple):
@@ -52,7 +51,7 @@ class RectAgentService:
                         full_response += msg.content
                         yield msg.content    # “messages” 模式下 AIMessage 中的 content 是流式存储的的
         if full_msg and full_response:
-            memory_service.add_message(session_id,request,full_response )
+            memory_service.add_message(user_id,session_id,request,full_response )
 
 
 

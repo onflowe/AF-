@@ -228,6 +228,7 @@ class ShotMemory:
         """获取分层摘要文件路径"""
         suffix = "txt" if layer == 3 else "json"
         file_dir = os.path.join(self.history_re,user_id)
+        os.makedirs(file_dir, exist_ok=True)
         return os.path.join(file_dir, f"{session_id}_layer{layer}.{suffix}")
 
     def _load_summaries(self, user_id:str,session_id: str, layer: int) -> List[str]:

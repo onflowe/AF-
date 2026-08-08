@@ -1,5 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
@@ -8,6 +9,14 @@ from backend.core.agent.RectAgent import RectAgentService
 
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5000", "http://127.0.0.1:5000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
@@ -27,12 +36,12 @@ def chat(request: ChatRequest)->ChatResponse:
 
     return ChatResponse(response=full_response)
 
-# 如果你想把静态文件放在 frontend/static 目录下
-app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+
 
 
 
 if __name__ == "__main__":
 
     uvicorn.run(app, host="127.0.0.1", port=8000)
+    #cd backend
     #uvicorn backend.api.chat:app --reload
