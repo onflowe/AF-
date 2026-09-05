@@ -3,3 +3,5 @@ base_url: ""
 model_name: ""
 
 embedding_model_name: "text-embedding-v4"
+# [DB改造-新增] DashScope 嵌入 API Key（可选）：留空时自动读取环境变量 DASHSCOPE_API_KEY
+embedding_api_key: ""

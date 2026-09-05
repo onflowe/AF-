@@ -24,7 +24,7 @@ class RectAgentService:
     def execute_stream(self,user_id,session_id :str, request: str):
         full_response = ""
         full_msg = None
-        history_message = memory_service.get_history_str(user_id,session_id)["full_context"]
+        history_message = memory_service.get_history(user_id,session_id)["full_context"]
 
         # ... 构建 messages 的代码 ...
         input_dict = {

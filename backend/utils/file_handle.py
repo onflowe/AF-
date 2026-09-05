@@ -1,8 +1,8 @@
+
 import os,json,hashlib
 from typing import List
 from langchain_core.documents import Document
 from langchain_community.document_loaders import TextLoader
-from streamlit.runtime.state.common import user_key_from_element_id
 
 from backend.utils.config_handle import rag_config
 from backend.utils.path_tool import get_abs_path
@@ -15,53 +15,15 @@ def load_txt(path:str)->List[Document]:
     docs =[]
     #添加metadata
     for doc in documents:
-        doc.metadata["type"] = rag_config["k_metadata_type"]
-
+        # [DB改造] 原代码写 doc.metadata["type"] = rag_config["k_metadata_type"]（Chroma 过滤用）；
+        # 新实现知识库统一存 knowledge_chunks 表，type 字段随 Chroma 弃用，仅保留来源文件信息
+        doc.metadata["source_file"] = path
         docs.append(doc)
     return docs
     #List[Document]
 
-def load_json(path:str)->List[Document]:
-    if not os.path.exists(path):
-        return []
-    with open(path, "r", encoding="utf-8") as f:
-        msg_list = json.load(f)
-    docs = []
-    for i in range(0, len(msg_list), 2):
-        human_msg = msg_list[i]
-        # 防止最后一条只有用户消息、没有AI回复的边界情况
-        if i + 1 >= len(msg_list):
-            break
-        ai_msg = msg_list[i + 1]
-
-        # 提取内容
-        user_id =  human_msg["data"]["additional_kwargs"].get("user_id")
-        session_id =  human_msg["data"]["additional_kwargs"].get("session_id")
-        user_text = human_msg["data"]["content"]
-        ai_text = ai_msg["data"]["content"]
-        msg_time = human_msg["data"]["additional_kwargs"].get("timestamp", "")
-
-        page_text = f"""
-        用户：{user_text}
-        助手：{ai_text}
-            """.strip()
-
-        meta = {
-            "user_id": user_id,
-            "session_id": session_id,
-            "type": rag_config["m_metadata_type"],
-            "source_file": str(path),
-            "msg_time": msg_time,
-
-        }
-
-        doc = Document(
-            page_content=page_text,
-            metadata=meta
-        )
-        docs.append(doc)
-
-    return docs
+# [DB改造] load_json 已删除：该函数用于解析旧版 history/{uid}/{sid}.json 对话文件并灌入
+# Chroma，但从未被任何代码调用（死代码），且 JSON 文件记忆已整体迁移到 messages 表，不再需要。
 
 #寻找文件路径
 def load_file_path(data_path,allowed_type):
